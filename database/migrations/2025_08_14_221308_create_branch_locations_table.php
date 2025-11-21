@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('branch_locations', function (Blueprint $table) {
+            $table->id();
             $table->unsignedBigInteger('branch_id');
             $table->foreign('branch_id')->on('branches')->references('id')->onDelete('cascade')->onUpdate('cascade');
             $table->string('name');
             $table->float('price', 2);
             $table->boolean('active');
-            $table->primary(['branch_id', 'name']);
             $table->timestamps();
         });
     }
