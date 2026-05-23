@@ -3,6 +3,7 @@
 use App\Http\Controllers\Front\BranchController;
 use App\Http\Controllers\Front\CategoryController;
 use App\Http\Controllers\Front\ConfigurationsController;
+use App\Http\Controllers\Front\DiscountsController;
 use App\Http\Controllers\Front\HomePageController;
 use App\Http\Controllers\Front\MenuController;
 use App\Http\Controllers\Front\OrderController;
@@ -27,3 +28,7 @@ Route::get('categories', [CategoryController::class, 'getCategories']);
 Route::post('validateCart', [OrderController::class, 'validateCart']);
 Route::get('branch/{branchId}/locations', [BranchController::class, 'getLocations']);
 Route::post('validate-user-info', [OrderController::class, 'validateUserInfo']);
+Route::post('discounts/get-public-discounts', [DiscountsController::class, 'getPublicDiscounts']);
+Route::post('discounts/validate-discounts', [DiscountsController::class, 'checkDiscountCode']);
+Route::post('order/get-final-info', [OrderController::class, 'getFinalInfo']);
+Route::post('order/place-order', [OrderController::class, 'placeOrder']);

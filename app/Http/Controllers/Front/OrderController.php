@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers\Front;
 
+use App\Enums\DiscountPaymentType;
+use App\Enums\DiscountType;
+use App\Enums\DiscountValueType;
+use App\Enums\OrderType;
 use App\Http\Controllers\Controller;
 use App\Models\BranchLocation;
+use App\Models\Discount;
 use App\Models\Setting;
 use App\Services\CartService;
+use App\Services\OrderService;
+use Exception;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -18,97 +25,106 @@ class OrderController extends Controller
         return $isValid;
     }
 
-    public function validateUserInfo(Request $request) {
+    public function validateUserInfo(Request $request, OrderService $orderService) {
         $userInfo = $request->userInfo;
+        $branchId = $request->header('branchId');
+
+        try {
+            $orderService->validateUserInfo($userInfo, $branchId);
+            
+            return response()->json([
+                'success' => true
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+
+    }
+
+    public function getFinalInfo(Request $request, CartService $cartService) {
+        $userInfo = $request->userInfo;
+        $cart = $request->cart;
+        $discountId = $request->discountId;
+
+        $totalAmount = 0;
+
+        $cartAmount = $cartService->getTotalCartPrice($cart);
+        $totalAmount += $cartAmount;
+
+        $areaId = $userInfo['location'];
+        $location = BranchLocation::find($areaId);
+        
+        $deliveryAmount = $userInfo['order_type'] == OrderType::DELIVERY->value ? $location->price : 0;
+        $totalAmount += $deliveryAmount;
+
+        $cartDiscount = 0;
+        $deliveryDiscount = 0;
+        if($discountId) {
+            $discount = Discount::find('id', $discountId);
+            if ($discount->discount_type == DiscountType::CART_DISCOUNT->value) {
+                $applicablePrice = $cartService->getApplicableCartPrice($cart, $discount);
+
+                if($discount->discount_value_type == DiscountValueType::PERCENTAGE->value) {
+                    $cartDiscount = $applicablePrice * ($discount->discount_value / 100);
+                } else {
+                    $cartDiscount = min($discount->discount_value, $applicablePrice);   
+                }
+            } else {
+                if($discount->discount_value_type == DiscountValueType::PERCENTAGE->value) {
+                    $deliveryDiscount = $deliveryAmount * ($discount->discount_value / 100);
+                } else {
+                    $deliveryDiscount = min($discount->discount_value, $deliveryAmount);
+                }
+            }
+
+            $totalAmount -= $cartDiscount;
+            $totalAmount -= $deliveryDiscount;
+        }
 
         $settings = Setting::first();
-
-        if (!in_array($userInfo['order_type'], ["delivery", "pickup"])) {
-            return response()->json(['error' => 'Invalid order type.'], 400);
+        
+        $tax = 0;
+        if ($settings->tax > 0) {
+            $tax = $totalAmount * ($settings->tax / 100);
         }
 
-        if ($settings->is_pickup_available == 0 && $userInfo['order_type'] == "pickup") {
-            return response()->json(['error' => 'Pickup option is not available.'], 400);
+        $totalAmount += $tax;
+
+        $visa_fees = 0;
+        if ($settings->is_visa_available == 1 && $userInfo['payment_type'] == DiscountPaymentType::VISA->value) {
+            $visa_fees = $totalAmount * ($settings->visa_percentage_fees / 100) + $settings->visa_fixed_fees;
         }
 
-        if(trim($userInfo['name']) == null) {
-            return response()->json(['error' => 'Name is required.'], 400);
-        }
+        $totalAmount += $visa_fees;
 
-        if(count(explode(' ', trim($userInfo['name']))) < 2) {
-            return response()->json(['error' => 'Please enter your full name.'], 400);
-        }
+        return response()->json([
+            'cartAmount' => $cartAmount,
+            'cartDiscount' => $cartDiscount,
+            'deliveryAmount' => $deliveryAmount,
+            'deliveryDiscount' => $deliveryDiscount,
+            'tax' => $tax,
+            'visa_fees' => $visa_fees,
+            'totalAmount' => $totalAmount,
+            'orderAvg' => $settings->average_order_time
+        ], 200);
+    }
 
-        if(strlen(trim($userInfo['name'])) < 3) {
-            return response()->json(['error' => 'Name must be at least 3 characters long.'], 400);
-        }
+    public function placeOrder(Request $request, OrderService $orderService) {
+        $cart = $request->cart;
+        $userInfo = $request->userInfo;
+        $discountId = $request->discountId;
 
-        if (!preg_match('/^[\p{L}\s]+$/u', $userInfo['name'])) {
-            return response()->json(['error' => 'Name can only contain letters and spaces.'], 400);
-        }
-
-        if(strlen(trim($userInfo['phone'])) != 11) {
-            return response()->json(['error' => 'Phone number must be 11 digits long.'], 400);
-        }
-
-        if(!in_array(substr(trim($userInfo['phone']), 0, 3), ['010', '011', '012', '015'])) {
-            return response()->json(['error' => 'Invalid phone number.'], 400);
-        }
-
-        if(is_nan($userInfo['phone'])) {
-            return response()->json(['error' => 'Phone number must contain only digits.'], 400);
-        }
-
-        if(strlen(trim($userInfo['additional_phone'])) > 0) {
-            if(strlen(trim($userInfo['additional_phone'])) != 11) {
-                return response()->json(['error' => 'Additional phone number must be 11 digits long.'], 400);
-            }
-
-            if(!in_array(substr(trim($userInfo['additional_phone']), 0, 3), ['010', '011', '012', '015'])) {
-                return response()->json(['error' => 'Invalid additional phone number.'], 400);
-            }
-
-            if(is_nan($userInfo['additional_phone'])) {
-                return response()->json(['error' => 'Additional phone number must contain only digits.'], 400);
-            }
-        }
-
-        if($userInfo['order_type'] == "delivery") {
-            if(empty(trim($userInfo['location']))) {
-                return response()->json(['error' => 'Location is required for delivery orders.'], 400);
-            }
-
-            if(is_nan($userInfo['location'])) {
-                return response()->json(['error' => 'Invalid location.'], 400);
-            }
-
-            $branchId = $request->header('branchId');
+        try {
+            $orderService->validateOrder($cart, $userInfo, $discountId);
             
-            $location = BranchLocation::where('branch_id', $branchId)
-                ->where('id', $userInfo['location'])
-                ->first();
+            $order = $orderService->saveCashOrder($cart, $userInfo, $discountId);
 
-            if(empty($location)) {
-                return response()->json(['error' => 'Invalid location.'], 400);
-            }
-
-            if(empty(trim($userInfo['address']))) {
-                return response()->json(['error' => 'Address is required for delivery orders.'], 400);
-            }
-
-            if(strlen(trim($userInfo['address'])) < 5) {
-                return response()->json(['error' => 'Address must be at least 5 characters long.'], 400);
-            }
+            return response()->json([
+                'success' => true,
+                'order_reference' => $order->order_reference,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
         }
-
-        if (strlen(trim($userInfo['notes'])) > 100) {
-            return response()->json(['error' => 'Notes cannot exceed 100 characters.'], 400);
-        }
-
-        if($settings->is_visa_available == 0 && $userInfo['payment_type'] == "visa") {
-            return response()->json(['error' => 'Visa payment option is not available.'], 400);
-        }
-
-        return response(true, 200);
     }
 }

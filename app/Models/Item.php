@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PricingEntityType;
 use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
@@ -23,8 +22,7 @@ class Item extends Model
     public function priceForBranch()
     {
         return $this->morphOne(Price::class, 'entity')
-            ->where('entity_type', PricingEntityType::Item->value)
-            ->orderByRaw("branch_id IS NULL")
+            ->orderByRaw("branch_id IS NULL ASC")
             ->orderByDesc('branch_id')
             ->withDefault([
                 'price' => 0

@@ -28,8 +28,7 @@ return new class extends Migration
             $table->integer('sort');
 
             $table->unique(['category_id', 'sort']);
-
-            $table->float('tax', 2)->nullable();
+            
             $table->timestamp('from')->nullable();
             $table->timestamp('to')->nullable();
             $table->timestamps();

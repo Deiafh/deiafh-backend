@@ -9,7 +9,7 @@ class ItemOptionValue extends Model
 {
     protected $hidden = ['priceForBranch'];
     protected $appends = ['price'];
-
+ 
     public function getPriceAttribute()
     {
         return $this->priceForBranch->price;

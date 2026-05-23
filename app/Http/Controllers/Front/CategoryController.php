@@ -28,20 +28,28 @@ class CategoryController extends Controller
                     ->orderBy('sort')
                     ->with(['sizes' => function($q) {
                         $q->with(['priceForBranch' => function($q2) {
-                            $q2->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
+                            $q2->where(function($q3) {
+                                $q3->where('branch_id', request()->header('branchId'))
+                                ->orWhereNull('branch_id');
+                            });
                         }])
                         ->select('id', 'item_id', 'title');
                     }, 'options' => function($q) {
                         $q->with(['values' => function($q2) {
                             $q2->with(['priceForBranch' => function($q3) {
-                                $q3->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
+                                $q3->where(function($q4) {
+                                    $q4->where('branch_id', request()->header('branchId'))
+                                    ->orWhereNull('branch_id');
+                                });
                             }])
                             ->select('id', 'item_option_id', 'title');
                         }])
                         ->select('id', 'item_id', 'title', 'size_id', 'option_type', 'is_counter', 'min_count', 'max_count');
                     }])
                     ->with(['priceForBranch' => function($q) {
-                        $q->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
+                        $q->where(function($q2) {
+                            $q2->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
+                        });
                     }]);
             }])
             ->whereHas('items', function ($query) use($now) {

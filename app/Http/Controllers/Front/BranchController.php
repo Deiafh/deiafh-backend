@@ -35,7 +35,7 @@ class BranchController extends Controller
 
     public function getBranchDetails($branchId)
     {
-        $branch = Branch::where('id', $branchId)->where('active', ActiveStatus::Active->value)->get(['id', 'title', 'hasOwnWorkingPeriods'])->first();
+        $branch = Branch::where('id', $branchId)->get(['id', 'title', 'hasOwnWorkingPeriods'])->first();
 
         if ($branch) {
             return response()->json($branch);

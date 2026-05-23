@@ -6,5 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderCart extends Model
 {
-    //
+    protected $guarded = ["id"];
+    public $timestamps = false;
+
+    public function options()
+    {
+        return $this->hasMany(OrderCartOption::class);
+    }
 }

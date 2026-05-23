@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('discount_locations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('discount_id');
-            $table->unsignedBigInteger('branch_id');
-            $table->string('name');
+            $table->unsignedBigInteger('location_id');
 
             $table->foreign('discount_id')
                     ->on('discounts')
@@ -23,9 +22,9 @@ return new class extends Migration
                     ->onDelete('cascade')
                     ->onUpdate('cascade');
 
-            $table->foreign(['branch_id', 'name'])
+            $table->foreign('location_id')
                     ->on('branch_locations')
-                    ->references(['branch_id', 'name'])
+                    ->references('id')
                     ->onDelete('cascade')
                     ->onUpdate('cascade');
 

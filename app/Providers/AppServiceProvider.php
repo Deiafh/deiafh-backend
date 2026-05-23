@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Enums\PricingEntityType;
+use App\Models\Item;
+use App\Models\ItemOptionValue;
+use App\Models\ItemSize;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,9 +25,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Relation::morphMap([
-            PricingEntityType::Item->value => 'App\Models\Item',
-            PricingEntityType::Size->value => 'App\Models\ItemSize',
-            PricingEntityType::OptionValue->value => 'App\Models\ItemOptionValue',
+            'item' => Item::class,
+            'size' => ItemSize::class,
+            'option_value' => ItemOptionValue::class,
         ]);
     }
 }

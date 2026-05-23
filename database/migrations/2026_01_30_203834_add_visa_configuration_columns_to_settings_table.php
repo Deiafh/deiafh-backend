@@ -1,5 +1,6 @@
 <?php
 
+use App\OnlinePayment\PaymentProviders;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,9 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-            $table->boolean('is_visa_available')->default(false)->after('is_pickup_available');
-            $table->float('visa_fixed_fees')->default(0)->after('is_visa_available');
-            $table->float('visa_percentage_fees')->default(0)->after('visa_fixed_fees');
+            $table->boolean('is_visa_enabled')->default(false)->after("lang");
+            $table->enum("visa_provider", PaymentProviders::values())->nullable()->after("is_visa_enabled");
         });
     }
 
@@ -24,9 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-            $table->dropColumn('is_visa_available');
-            $table->dropColumn('visa_fixed_fees');
-            $table->dropColumn('visa_percentage_fees');
+            $table->dropColumn(['is_visa_enabled', 'visa_providor']);
         });
     }
 };

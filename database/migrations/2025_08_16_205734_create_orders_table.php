@@ -33,16 +33,10 @@ return new class extends Migration
 
             $table->string('branch_name');
 
-            $table->foreign(['branch_id', 'branch_name'])
-            ->references(['branch_id', 'name'])
-            ->on('branch_locations')
-            ->onDelete('no action')
-            ->onUpdate('cascade');
-
             $table->string('location_name');
             
             $table->text('address');
-            $table->text('notice')->nullable();
+            $table->text('notes')->nullable();
 
             $table->enum('payment_type', [DiscountPaymentType::CASH->value, DiscountPaymentType::VISA->value]);
             
@@ -61,16 +55,6 @@ return new class extends Migration
             $table->string('discount_code')->nullable();
             $table->float('order_discount_amount')->default(0);
             $table->float('delivery_discount_amount')->default(0);
-
-            // $table->string('transaction_id')->nullable();   
-
-            // $table->unsignedBigInteger('visa_order_request_id')->nullable();
-            // $table->foreign('visa_order_request_id')
-            // ->references('id')
-            // ->on('visa_order_requests')
-            // ->onDelete('set null')
-            // ->onUpdate('cascade');
-            // $table->float('visa_fees_amount')->default(0);
 
             $table->enum('status', [OrderStatus::ACCEPTED->value, OrderStatus::PENDING->value, OrderStatus::REJECTED->value])->default('pending');
 
