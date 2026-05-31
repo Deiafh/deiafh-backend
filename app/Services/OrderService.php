@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\enums\ActiveStatus;
 use App\Enums\DiscountPaymentType;
+use App\Enums\DiscountType;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Branch;
@@ -156,8 +157,8 @@ class OrderService
         $discount = $discountId ? Discount::find($discountId) : null;
         $total_cart = $this->cartService->getTotalCartPrice($cart);
         $delivery_price = $userInfo['order_type'] == "delivery" ? BranchLocation::find($userInfo['location'])->price : 0;
-        $cart_discount_amount = $discount ? DiscountService::calculateCartDiscountAmount($discount, $cart, $this->cartService) : 0;
-        $delivery_discount_amount = $discount ? DiscountService::calculateDeliveryDiscountAmount($discount, $delivery_price) : 0;
+        $cart_discount_amount = $discount && $discount->discount_type === DiscountType::CART_DISCOUNT->value ? DiscountService::calculateCartDiscountAmount($discount, $cart, $this->cartService) : 0;
+        $delivery_discount_amount = $discount && $discount->discount_type === DiscountType::DELIVERY_DISCOUNT->value ? DiscountService::calculateDeliveryDiscountAmount($discount, $delivery_price) : 0;
         
         $settings = Setting::first();
 
@@ -186,8 +187,8 @@ class OrderService
             "delivery_price" => $delivery_price,
             "tax" => $tax,
             "discount_id" => $discountId,
-            "discount_name" => $discount ? $discount->name : null,
-            "discount_code" => $discount ? $discount->code : null,
+            "discount_name" => $discount->name ?? null,
+            "discount_code" => $discount->code ?? null,
             "order_discount_amount" => $cart_discount_amount,
             "delivery_discount_amount" => $delivery_discount_amount,
             "status" => OrderStatus::PENDING->value,
@@ -201,7 +202,7 @@ class OrderService
                     $q3->where('branch_id', $branchId)->orWhereNull('branch_id');
                 });
             }])->find($item['id']);
-            $cartItem = $order->carts()->create([
+            $cartItem = $order->items()->create([
                 "item_id" => $itemData->id,
                 "item_name" => $itemData->title,
                 "item_count" => $item['count'],

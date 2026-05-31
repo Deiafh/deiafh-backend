@@ -18,7 +18,7 @@ class Order extends Model
         });
     }
 
-    public function Carts()
+    public function items()
     {
         return $this->hasMany(OrderCart::class);
     }

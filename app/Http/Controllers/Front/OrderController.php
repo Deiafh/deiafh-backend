@@ -9,6 +9,7 @@ use App\Enums\OrderType;
 use App\Http\Controllers\Controller;
 use App\Models\BranchLocation;
 use App\Models\Discount;
+use App\Models\Order;
 use App\Models\Setting;
 use App\Services\CartService;
 use App\Services\OrderService;
@@ -33,7 +34,7 @@ class OrderController extends Controller
             $orderService->validateUserInfo($userInfo, $branchId);
             
             return response()->json([
-                'success' => true
+                'status' => true
             ], 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
@@ -60,7 +61,7 @@ class OrderController extends Controller
         $cartDiscount = 0;
         $deliveryDiscount = 0;
         if($discountId) {
-            $discount = Discount::find('id', $discountId);
+            $discount = Discount::find($discountId);
             if ($discount->discount_type == DiscountType::CART_DISCOUNT->value) {
                 $applicablePrice = $cartService->getApplicableCartPrice($cart, $discount);
 
@@ -126,5 +127,14 @@ class OrderController extends Controller
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
+    }
+
+    public function getOrderDetails(Request $request, $order_reference) {
+        $order = Order::where('order_reference', $order_reference)->with(["items" => function ($q) {
+            return $q->with(["options" => function ($q2) {
+                $q2->with("values");
+            }]);
+        }])->first();
+        return response()->json($order, 200);
     }
 }
