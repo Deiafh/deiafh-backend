@@ -82,21 +82,26 @@ class OrderController extends Controller
             $totalAmount -= $deliveryDiscount;
         }
 
-        $settings = Setting::first();
-        
+        $branch = \App\Models\Branch::find($request->header('branchId'));
+
         $tax = 0;
-        if ($settings->tax > 0) {
-            $tax = $totalAmount * ($settings->tax / 100);
+        if ($branch && $branch->tax > 0) {
+            $tax = $totalAmount * ($branch->tax / 100);
         }
 
         $totalAmount += $tax;
 
+        $settings = Setting::first();
         $visa_fees = 0;
         if ($settings->is_visa_available == 1 && $userInfo['payment_type'] == DiscountPaymentType::VISA->value) {
             $visa_fees = $totalAmount * ($settings->visa_percentage_fees / 100) + $settings->visa_fixed_fees;
         }
 
         $totalAmount += $visa_fees;
+
+        $orderAvg = $branch && $branch->order_time_from && $branch->order_time_to
+            ? "{$branch->order_time_from} - {$branch->order_time_to} دقيقة"
+            : ($branch && $branch->order_time_from ? "{$branch->order_time_from}+ دقيقة" : null);
 
         return response()->json([
             'cartAmount' => $cartAmount,
@@ -106,7 +111,7 @@ class OrderController extends Controller
             'tax' => $tax,
             'visa_fees' => $visa_fees,
             'totalAmount' => $totalAmount,
-            'orderAvg' => $settings->average_order_time
+            'orderAvg' => $orderAvg,
         ], 200);
     }
 

@@ -34,9 +34,9 @@ class BranchesService
         $isAvailableWorkingPeriods = WorkingPeriodsService::isAvailableGeneralWorkingPeriod();
 
         $workingBranches = $activeBranches->where(function ($query) use($isAvailableWorkingPeriods,$currentDate) {
-            $query->where(function($hasOwnQuery) use ($currentDate) {
-                $hasOwnQuery->where('hasOwnWorkingPeriods', true)
-                    ->whereHas('OwnWorkingPeriods', function ($q) use($currentDate) {
+            $query->where(function($hasGroupQuery) use ($currentDate) {
+                $hasGroupQuery->whereNotNull('working_period_group_id')
+                    ->whereHas('workingPeriodGroup.workingPeriods', function ($q) use($currentDate) {
                         $q->where(function($q) use($currentDate) {
                             $q->whereColumn('from_date', '<', 'to_date')
                                 ->where('from_date', '<=', $currentDate)
@@ -51,11 +51,11 @@ class BranchesService
 
             if($isAvailableWorkingPeriods) {
                 $query->orWhere(function ($query) {
-                    $query->where('hasOwnWorkingPeriods', false);
+                    $query->whereNull('working_period_group_id');
                 });
             }
         });
 
-        return $workingBranches->get();        
+        return $workingBranches->get();
     }
 }

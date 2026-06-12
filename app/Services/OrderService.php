@@ -31,8 +31,12 @@ class OrderService
             throw new InvalidArgumentException('Invalid order type.');
         }
 
-        if ($settings->is_pickup_available == 0 && $userInfo['order_type'] == "pickup") {
-            throw new InvalidArgumentException('Pickup option is not available.');
+        $branch = Branch::find($branchId);
+        if ($branch && !$branch->is_delivery_available && $userInfo['order_type'] == "delivery") {
+            throw new InvalidArgumentException('Delivery option is not available for this branch.');
+        }
+        if ($branch && !$branch->is_pickup_available && $userInfo['order_type'] == "pickup") {
+            throw new InvalidArgumentException('Pickup option is not available for this branch.');
         }
 
         if(trim($userInfo['name']) == null) {
@@ -135,10 +139,8 @@ class OrderService
             throw new InvalidArgumentException('Selected branch is currently closed.');
         }
 
-        //order is available
-        $settings = Setting::first();
-        if(!$settings->is_order_available) {
-            throw new InvalidArgumentException('Orders are currently not being accepted. Please try again later.');
+        if ($branch->is_busy) {
+            throw new InvalidArgumentException('الفرع مشغول حالياً. يرجى المحاولة لاحقاً.');
         }
 
         // min
@@ -160,18 +162,16 @@ class OrderService
         $cart_discount_amount = $discount && $discount->discount_type === DiscountType::CART_DISCOUNT->value ? DiscountService::calculateCartDiscountAmount($discount, $cart, $this->cartService) : 0;
         $delivery_discount_amount = $discount && $discount->discount_type === DiscountType::DELIVERY_DISCOUNT->value ? DiscountService::calculateDeliveryDiscountAmount($discount, $delivery_price) : 0;
         
-        $settings = Setting::first();
+        $branch = Branch::find($cart['branchId']);
 
         $total = $total_cart - $cart_discount_amount + $delivery_price - $delivery_discount_amount;
-        
+
         $tax = 0;
-        if ($settings->tax > 0) {
-            $tax = $total * ($settings->tax / 100);
+        if ($branch && $branch->tax > 0) {
+            $tax = $total * ($branch->tax / 100);
         }
 
         $totalAmount = $total + $tax;
-
-        $branch = Branch::find($cart['branchId']);
         $order = Order::create([
             "type" => $userInfo['order_type'] == "delivery" ? OrderType::DELIVERY->value : OrderType::PICK_UP->value,
             "client_name" => trim($userInfo['name']),

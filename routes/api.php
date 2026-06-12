@@ -1,8 +1,14 @@
 <?php
 
 use App\Http\Controllers\Dashboard\AuthController;
+use App\Http\Controllers\Dashboard\BranchController as DashboardBranchController;
+use App\Http\Controllers\Dashboard\BranchLocationController;
 use App\Http\Controllers\Dashboard\RoleController;
+use App\Http\Controllers\Dashboard\SettingController;
+use App\Http\Controllers\Dashboard\ThemeController;
 use App\Http\Controllers\Dashboard\UserController;
+use App\Http\Controllers\Dashboard\WorkingPeriodController;
+use App\Http\Controllers\Dashboard\WorkingPeriodGroupController;
 use App\Http\Controllers\Front\BranchController;
 use App\Http\Controllers\Front\CategoryController;
 use App\Http\Controllers\Front\ConfigurationsController;
@@ -43,9 +49,33 @@ Route::prefix('dashboard')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 
+        Route::get('settings', [SettingController::class, 'show']);
+        Route::post('settings', [SettingController::class, 'update']);
+
         Route::resource('users', UserController::class);
         Route::resource('roles', RoleController::class);
         Route::get('roles-for-users', [RoleController::class, 'getAllForUsers']);
+
+        Route::resource('theme', ThemeController::class);
+
+        Route::get('branches', [DashboardBranchController::class, 'index']);
+        Route::post('branches', [DashboardBranchController::class, 'store']);
+        Route::put('branches/{id}', [DashboardBranchController::class, 'update']);
+        Route::delete('branches/{id}', [DashboardBranchController::class, 'destroy']);
+        Route::post('branches/{id}/toggle-active', [DashboardBranchController::class, 'toggleActive']);
+        Route::post('branches/{id}/toggle-busy', [DashboardBranchController::class, 'toggleBusy']);
+        Route::post('branches/{branchId}/assign', [DashboardBranchController::class, 'assign']);
+        Route::post('branches/{branchId}/unassign', [DashboardBranchController::class, 'unassign']);
+
+        Route::get('branches/{branchId}/locations', [BranchLocationController::class, 'index']);
+        Route::post('branches/{branchId}/locations', [BranchLocationController::class, 'store']);
+        Route::put('branches/{branchId}/locations/{locationId}', [BranchLocationController::class, 'update']);
+        Route::delete('branches/{branchId}/locations/{locationId}', [BranchLocationController::class, 'destroy']);
+
+        Route::apiResource('working-period-groups', WorkingPeriodGroupController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('working-period-groups/{groupId}/periods', [WorkingPeriodController::class, 'store']);
+        Route::put('working-period-groups/{groupId}/periods/{periodId}', [WorkingPeriodController::class, 'update']);
+        Route::delete('working-period-groups/{groupId}/periods/{periodId}', [WorkingPeriodController::class, 'destroy']);
     });
 
 });
