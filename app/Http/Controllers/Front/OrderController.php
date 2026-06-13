@@ -55,7 +55,7 @@ class OrderController extends Controller
         $areaId = $userInfo['location'];
         $location = BranchLocation::find($areaId);
         
-        $deliveryAmount = $userInfo['order_type'] == OrderType::DELIVERY->value ? $location->price : 0;
+        $deliveryAmount = $userInfo['order_type'] == OrderType::DELIVERY->value ? $location->load('priceGroup')->effective_price : 0;
         $totalAmount += $deliveryAmount;
 
         $cartDiscount = 0;

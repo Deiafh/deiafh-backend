@@ -4,15 +4,29 @@ namespace App\Services;
 
 use App\Models\Item;
 use App\Models\ItemSize;
+use App\Models\ItemStockRestriction;
 
 class CartService
 {
     public function validateCart($cart) {
+        $branchId = $cart['branchId'] ?? null;
+
         // loop items
         foreach ($cart['items'] as $item) {
             // check item id exists
             $itemExists = Item::find($item['id']);
             if (!$itemExists) {
+                return false;
+            }
+
+            // check item is not out of stock for this branch
+            $isOutOfStock = ItemStockRestriction::where('item_id', $item['id'])
+                ->where(function ($q) use ($branchId) {
+                    $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                })
+                ->active()
+                ->exists();
+            if ($isOutOfStock) {
                 return false;
             }
             // check size id exists for item

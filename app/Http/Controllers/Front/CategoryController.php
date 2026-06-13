@@ -15,7 +15,7 @@ class CategoryController extends Controller
         $branchId = $request->header('branchId');
         
         $now = Carbon::now();
-        $categories = Category::with(['items' => function ($query) use($now) {
+        $categories = Category::with(['items' => function ($query) use($now, $branchId) {
                 $query->where('active', ActiveStatus::Active->value)
                     ->where(function($q) use($now) {
                         $q->whereNull('from')
@@ -50,6 +50,14 @@ class CategoryController extends Controller
                         $q->where(function($q2) {
                             $q2->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
                         });
+                    }])
+                    ->with('labels')
+                    ->with(['stockRestrictions' => function($q) use($branchId) {
+                        $q->where(function($q2) use($branchId) {
+                            $q2->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                        })->where(function($q2) {
+                            $q2->whereNull('until')->orWhere('until', '>', now());
+                        });
                     }]);
             }])
             ->whereHas('items', function ($query) use($now) {
@@ -82,6 +90,14 @@ class CategoryController extends Controller
             })
             ->orderBy('sort')
             ->get();
+
+        $categories->each(function ($category) {
+            $category->items->each(function ($item) {
+                $item->is_out_of_stock = $item->stockRestrictions->isNotEmpty();
+                $item->makeHidden('stockRestrictions');
+            });
+        });
+
         return response()->json($categories);
     }
 }

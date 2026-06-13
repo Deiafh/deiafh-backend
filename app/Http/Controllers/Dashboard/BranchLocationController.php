@@ -13,7 +13,9 @@ class BranchLocationController extends Controller
     {
         Branch::findOrFail($branchId);
 
-        return response()->json(BranchLocation::where('branch_id', $branchId)->get());
+        return response()->json(
+            BranchLocation::with('priceGroup')->where('branch_id', $branchId)->get()
+        );
     }
 
     public function store(Request $request, $branchId)
@@ -21,27 +23,28 @@ class BranchLocationController extends Controller
         Branch::findOrFail($branchId);
 
         $request->validate([
-            'name'   => 'required|string|max:255',
-            'price'  => 'required|numeric|min:0',
-            'active' => 'required|boolean',
+            'name'           => 'required|string|max:255',
+            'price_group_id' => 'required|integer|exists:location_price_groups,id',
+            'active'         => 'required|boolean',
         ]);
 
         $location = BranchLocation::create([
-            'branch_id' => $branchId,
-            'name'      => $request->name,
-            'price'     => $request->price,
-            'active'    => $request->active,
+            'branch_id'      => $branchId,
+            'name'           => $request->name,
+            'price'          => 0,
+            'price_group_id' => $request->price_group_id,
+            'active'         => $request->active,
         ]);
 
-        return response()->json($location, 201);
+        return response()->json($location->load('priceGroup'), 201);
     }
 
     public function update(Request $request, $branchId, $locationId)
     {
         $request->validate([
-            'name'   => 'required|string|max:255',
-            'price'  => 'required|numeric|min:0',
-            'active' => 'required|boolean',
+            'name'           => 'required|string|max:255',
+            'price_group_id' => 'required|integer|exists:location_price_groups,id',
+            'active'         => 'required|boolean',
         ]);
 
         $location = BranchLocation::where('id', $locationId)
@@ -49,12 +52,12 @@ class BranchLocationController extends Controller
             ->firstOrFail();
 
         $location->update([
-            'name'   => $request->name,
-            'price'  => $request->price,
-            'active' => $request->active,
+            'name'           => $request->name,
+            'price_group_id' => $request->price_group_id,
+            'active'         => $request->active,
         ]);
 
-        return response()->json($location);
+        return response()->json($location->load('priceGroup'));
     }
 
     public function destroy($branchId, $locationId)

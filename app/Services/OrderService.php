@@ -158,7 +158,7 @@ class OrderService
     {
         $discount = $discountId ? Discount::find($discountId) : null;
         $total_cart = $this->cartService->getTotalCartPrice($cart);
-        $delivery_price = $userInfo['order_type'] == "delivery" ? BranchLocation::find($userInfo['location'])->price : 0;
+        $delivery_price = $userInfo['order_type'] == "delivery" ? BranchLocation::with('priceGroup')->find($userInfo['location'])->effective_price : 0;
         $cart_discount_amount = $discount && $discount->discount_type === DiscountType::CART_DISCOUNT->value ? DiscountService::calculateCartDiscountAmount($discount, $cart, $this->cartService) : 0;
         $delivery_discount_amount = $discount && $discount->discount_type === DiscountType::DELIVERY_DISCOUNT->value ? DiscountService::calculateDeliveryDiscountAmount($discount, $delivery_price) : 0;
         

@@ -92,6 +92,20 @@ class DiscountService
             throw new InvalidArgumentException("هذا الخصم غير متاح في منطقة التوصيل المختارة");
         }
 
+        // phones
+        if ($discount->phones_type != DiscountConditionsType::All->value) {
+            $userPhones = array_filter([$userInfo['phone'] ?? null, $userInfo['additional_phone'] ?? null]);
+            $discountPhones = $discount->phones->pluck('phone')->toArray();
+            $hasMatch = !empty(array_intersect($userPhones, $discountPhones));
+
+            if ($discount->phones_type == DiscountConditionsType::Include->value && !$hasMatch) {
+                throw new InvalidArgumentException("هذا الخصم غير متاح لرقم هاتفك");
+            }
+            if ($discount->phones_type == DiscountConditionsType::Exclude->value && $hasMatch) {
+                throw new InvalidArgumentException("هذا الخصم غير متاح لرقم هاتفك");
+            }
+        }
+
         if (!DiscountService::isAppliableToCart($discount, $cart)) {
             throw new InvalidArgumentException("هذا الخصم غير متاح في الاصناف المختارة");
         }
@@ -157,7 +171,11 @@ class DiscountService
         $applicablePrice = $cartService->getApplicableCartPrice($cart, $discount);
 
         if ($discount->discount_value_type == DiscountValueType::PERCENTAGE->value) {
-            return $applicablePrice * ($discount->discount_value / 100);
+            $amount = $applicablePrice * ($discount->discount_value / 100);
+            if ($discount->max_discount > 0) {
+                $amount = min($amount, $discount->max_discount);
+            }
+            return $amount;
         } else {
             return min($discount->discount_value, $applicablePrice);
         }

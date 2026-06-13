@@ -9,7 +9,7 @@ class Branch extends Model
 {
     protected $appends = ['isWorkingNow'];
 
-    protected $fillable = ['title', 'tax', 'active', 'working_period_group_id',
+    protected $fillable = ['title', 'address', 'google_map_url', 'tax', 'active', 'working_period_group_id', 'menu_group_id',
         'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to'];
 
     protected $casts = [
@@ -23,6 +23,11 @@ class Branch extends Model
     function locations()
     {
         return $this->hasMany(BranchLocation::class);
+    }
+
+    public function menuGroup()
+    {
+        return $this->belongsTo(MenuGroup::class, 'menu_group_id');
     }
 
     function workingPeriodGroup()

@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class DiscountPhone extends Model
 {
-    //
+    protected $fillable = ['discount_id', 'phone'];
 }

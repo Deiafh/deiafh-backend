@@ -38,4 +38,14 @@ class Item extends Model
     {
         return $this->hasMany(ItemOption::class);
     }
+
+    public function stockRestrictions()
+    {
+        return $this->hasMany(ItemStockRestriction::class);
+    }
+
+    public function labels()
+    {
+        return $this->belongsToMany(Label::class);
+    }
 }

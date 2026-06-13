@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Front;
 
+use App\Enums\NumberType;
 use App\Http\Controllers\Controller;
-use App\Models\WhatsAppNumber;
-use Illuminate\Http\Request;
+use App\Models\Number;
 
 class WhatsAppNumberController extends Controller
 {
     public function index()
     {
-        return WhatsAppNumber::all();
+        return Number::where('type', NumberType::WhatsApp->value)->get(['id', 'number']);
     }
 }

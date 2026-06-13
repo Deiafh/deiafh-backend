@@ -17,7 +17,7 @@ class BranchController extends Controller
         $orderBy   = in_array($request->orderBy, ['id', 'title', 'tax', 'active']) ? $request->orderBy : 'id';
         $orderDir  = $request->orderDir === 'desc' ? 'desc' : 'asc';
 
-        $branches = Branch::select(['id', 'title', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to'])
+        $branches = Branch::select(['id', 'title', 'address', 'google_map_url', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to'])
             ->when($request->title, fn($q) => $q->where('title', 'like', '%' . $request->title . '%'))
             ->when($request->filled('active'), fn($q) => $q->where('active', $request->active))
             ->orderBy($orderBy, $orderDir)
@@ -30,6 +30,8 @@ class BranchController extends Controller
     {
         $request->validate([
             'title'                 => 'required|string|max:255',
+            'address'               => 'nullable|string|max:500',
+            'google_map_url'        => 'nullable|string|max:1000',
             'tax'                   => 'required|numeric|min:0|max:100',
             'active'                => 'sometimes|in:active,inactive',
             'is_delivery_available' => 'sometimes|boolean',
@@ -41,6 +43,8 @@ class BranchController extends Controller
 
         $branch = Branch::create([
             'title'                 => $request->title,
+            'address'               => $request->address,
+            'google_map_url'        => $request->google_map_url,
             'tax'                   => $request->tax,
             'active'                => $request->active ?? ActiveStatus::Active->value,
             'is_delivery_available' => $request->boolean('is_delivery_available', true),
@@ -50,13 +54,15 @@ class BranchController extends Controller
             'order_time_to'         => $request->order_time_to,
         ]);
 
-        return response()->json($branch->only(['id', 'title', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to']), 201);
+        return response()->json($branch->only(['id', 'title', 'address', 'google_map_url', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to']), 201);
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
             'title'                 => 'required|string|max:255',
+            'address'               => 'nullable|string|max:500',
+            'google_map_url'        => 'nullable|string|max:1000',
             'tax'                   => 'required|numeric|min:0|max:100',
             'active'                => 'sometimes|in:active,inactive',
             'is_delivery_available' => 'sometimes|boolean',
@@ -84,6 +90,8 @@ class BranchController extends Controller
 
         $branch->update([
             'title'                 => $request->title,
+            'address'               => $request->address,
+            'google_map_url'        => $request->google_map_url,
             'tax'                   => $request->tax,
             'active'                => $newActive,
             'is_delivery_available' => $delivery,
@@ -93,7 +101,7 @@ class BranchController extends Controller
             'order_time_to'         => $request->order_time_to,
         ]);
 
-        return response()->json($branch->only(['id', 'title', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to']));
+        return response()->json($branch->only(['id', 'title', 'address', 'google_map_url', 'tax', 'active', 'working_period_group_id', 'is_delivery_available', 'is_pickup_available', 'is_busy', 'order_time_from', 'order_time_to']));
     }
 
     public function destroy($id)
