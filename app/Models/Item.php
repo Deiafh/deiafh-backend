@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    protected $hidden = ['priceForBranch'];
+    protected $guarded = ['id'];
+
+    protected $hidden  = ['priceForBranch'];
     protected $appends = ['price', 'image_url'];
 
     public function getImageUrlAttribute()
@@ -16,17 +18,25 @@ class Item extends Model
 
     public function getPriceAttribute()
     {
-        return $this->priceForBranch->price;
+        return $this->priceForBranch->price ?? 0;
     }
 
     public function priceForBranch()
     {
         return $this->morphOne(Price::class, 'entity')
-            ->orderByRaw("branch_id IS NULL ASC")
+            ->orderByRaw('branch_id IS NULL ASC')
             ->orderByDesc('branch_id')
-            ->withDefault([
-                'price' => 0
-            ]);
+            ->withDefault(['price' => 0]);
+    }
+
+    public function prices()
+    {
+        return $this->morphMany(Price::class, 'entity');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function sizes()
@@ -36,7 +46,13 @@ class Item extends Model
 
     public function options()
     {
-        return $this->hasMany(ItemOption::class);
+        return $this->belongsToMany(ItemOption::class, 'item_option_item')
+            ->withPivot(['size_id', 'option_type', 'is_counter', 'min_count', 'max_count']);
+    }
+
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'item_branches');
     }
 
     public function stockRestrictions()

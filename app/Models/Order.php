@@ -22,4 +22,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderCart::class);
     }
+
+    public function cancelReason()
+    {
+        return $this->belongsTo(CancelReason::class);
+    }
 }

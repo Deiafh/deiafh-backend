@@ -2,10 +2,16 @@
 
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\BranchController as DashboardBranchController;
+use App\Http\Controllers\Dashboard\CancelReasonController;
+use App\Http\Controllers\Dashboard\CategoryController as DashboardCategoryController;
+use App\Http\Controllers\Dashboard\ItemController as DashboardItemController;
+use App\Http\Controllers\Dashboard\ItemOptionController;
+use App\Http\Controllers\Dashboard\OrderStatusController;
 use App\Http\Controllers\Dashboard\DiscountController as DashboardDiscountController;
 use App\Http\Controllers\Dashboard\BranchLocationController;
 use App\Http\Controllers\Dashboard\LocationPriceGroupController;
 use App\Http\Controllers\Dashboard\MainPageHeaderController;
+use App\Http\Controllers\Dashboard\StatsController;
 use App\Http\Controllers\Dashboard\MenuController as DashboardMenuController;
 use App\Http\Controllers\Dashboard\MenuGroupController;
 use App\Http\Controllers\Dashboard\NumberController;
@@ -94,7 +100,7 @@ Route::prefix('dashboard')->group(function () {
         Route::delete('menu-groups/{id}/menus/{menuId}', [DashboardMenuController::class, 'destroy']);
         Route::post('menu-groups/{id}/sort', [MenuGroupController::class, 'updateSort']);
 
-        Route::get('items', [\App\Http\Controllers\Dashboard\ItemStockController::class, 'index']);
+        Route::get('item-stock', [\App\Http\Controllers\Dashboard\ItemStockController::class, 'index']);
         Route::post('items/{id}/out-of-stock', [\App\Http\Controllers\Dashboard\ItemStockController::class, 'store']);
         Route::delete('item-stock-restrictions/{id}', [\App\Http\Controllers\Dashboard\ItemStockController::class, 'destroy']);
 
@@ -112,6 +118,8 @@ Route::prefix('dashboard')->group(function () {
         Route::put('working-period-groups/{groupId}/periods/{periodId}', [WorkingPeriodController::class, 'update']);
         Route::delete('working-period-groups/{groupId}/periods/{periodId}', [WorkingPeriodController::class, 'destroy']);
 
+        Route::get('stats', [StatsController::class, 'index']);
+
         Route::get('headers', [MainPageHeaderController::class, 'index']);
         Route::post('headers', [MainPageHeaderController::class, 'store']);
         Route::post('headers/sort', [MainPageHeaderController::class, 'updateSort']);
@@ -121,6 +129,48 @@ Route::prefix('dashboard')->group(function () {
         Route::get('numbers', [NumberController::class, 'index']);
         Route::post('numbers', [NumberController::class, 'store']);
         Route::delete('numbers/{id}', [NumberController::class, 'destroy']);
+
+        Route::get('cancel-reasons', [CancelReasonController::class, 'index']);
+        Route::post('cancel-reasons', [CancelReasonController::class, 'store']);
+        Route::delete('cancel-reasons/{cancelReason}', [CancelReasonController::class, 'destroy']);
+
+        Route::put('orders/{order}/status', [OrderStatusController::class, 'update']);
+
+        // Categories
+        Route::get('categories', [DashboardCategoryController::class, 'index']);
+        Route::post('categories', [DashboardCategoryController::class, 'store']);
+        Route::post('categories/sort', [DashboardCategoryController::class, 'updateSort']);
+        Route::put('categories/{category}', [DashboardCategoryController::class, 'update']);
+        Route::delete('categories/{category}', [DashboardCategoryController::class, 'destroy']);
+
+        // Items
+        Route::get('items', [DashboardItemController::class, 'index']);
+        Route::post('items', [DashboardItemController::class, 'store']);
+        Route::post('items/sort', [DashboardItemController::class, 'updateSort']); // before {item} to avoid conflict
+        Route::get('items/{item}', [DashboardItemController::class, 'show']);
+        Route::post('items/{item}', [DashboardItemController::class, 'update']); // POST for file upload
+        Route::delete('items/{item}', [DashboardItemController::class, 'destroy']);
+        Route::post('items/{item}/branch-price', [DashboardItemController::class, 'upsertBranchPrice']);
+        Route::delete('items/{item}/branch-price', [DashboardItemController::class, 'deleteBranchPrice']);
+        Route::post('items/{item}/sizes', [DashboardItemController::class, 'storeSizes']);
+        Route::put('items/{item}/sizes/{sizeId}', [DashboardItemController::class, 'updateSize']);
+        Route::delete('items/{item}/sizes/{sizeId}', [DashboardItemController::class, 'destroySize']);
+        Route::post('items/{item}/sizes/{sizeId}/branch-prices', [DashboardItemController::class, 'upsertSizeBranchPrice']);
+        Route::delete('items/{item}/sizes/{sizeId}/branch-prices', [DashboardItemController::class, 'deleteSizeBranchPrice']);
+        Route::post('items/{item}/options', [DashboardItemController::class, 'attachOption']);
+        Route::put('items/{item}/options/{optionId}', [DashboardItemController::class, 'updateOptionPivot']);
+        Route::delete('items/{item}/options/{optionId}', [DashboardItemController::class, 'detachOption']);
+
+        // Shared item options
+        Route::get('item-options', [ItemOptionController::class, 'index']);
+        Route::post('item-options', [ItemOptionController::class, 'store']);
+        Route::put('item-options/{itemOption}', [ItemOptionController::class, 'update']);
+        Route::delete('item-options/{itemOption}', [ItemOptionController::class, 'destroy']);
+        Route::post('item-options/{itemOption}/values', [ItemOptionController::class, 'storeValue']);
+        Route::put('item-options/{itemOption}/values/{valueId}', [ItemOptionController::class, 'updateValue']);
+        Route::delete('item-options/{itemOption}/values/{valueId}', [ItemOptionController::class, 'destroyValue']);
+        Route::post('item-options/{itemOption}/values/{valueId}/branch-prices', [ItemOptionController::class, 'upsertValueBranchPrice']);
+        Route::delete('item-options/{itemOption}/values/{valueId}/branch-prices', [ItemOptionController::class, 'deleteValueBranchPrice']);
     });
 
 });

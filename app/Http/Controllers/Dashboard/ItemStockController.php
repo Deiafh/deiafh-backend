@@ -15,7 +15,7 @@ class ItemStockController extends Controller
         return Category::with(['items' => function ($q) {
             $q->with(['stockRestrictions' => function ($q2) {
                 $q2->active()->with('branch:id,title');
-            }])->orderBy('sort');
+            }, 'branches:id'])->orderBy('sort');
         }])
             ->orderBy('sort')
             ->get()
@@ -25,6 +25,7 @@ class ItemStockController extends Controller
                         'id'                 => $item->id,
                         'title'              => $item->title,
                         'image_url'          => $item->image_url,
+                        'branch_ids'         => $item->branches->pluck('id')->values(),
                         'stock_restrictions' => $item->stockRestrictions->values(),
                     ];
                 });

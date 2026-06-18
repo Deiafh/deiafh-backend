@@ -10,84 +10,51 @@ use Illuminate\Support\Carbon;
 
 class CategoryController extends Controller
 {
-    public function getCategories(Request $request) 
+    public function getCategories(Request $request)
     {
         $branchId = $request->header('branchId');
-        
-        $now = Carbon::now();
-        $categories = Category::with(['items' => function ($query) use($now, $branchId) {
+        $now      = Carbon::now();
+
+        $categories = Category::with(['items' => function ($query) use ($now, $branchId) {
                 $query->where('active', ActiveStatus::Active->value)
-                    ->where(function($q) use($now) {
-                        $q->whereNull('from')
-                            ->orWhere('from', '<=', $now);
-                    })
-                    ->where(function($q) use($now) {
-                        $q->whereNull('to')
-                            ->orWhere('to', '>=', $now);
-                    })
+                    ->where(fn($q) => $q->whereNull('from')->orWhere('from', '<=', $now))
+                    ->where(fn($q) => $q->whereNull('to')->orWhere('to', '>=', $now))
                     ->orderBy('sort')
-                    ->with(['sizes' => function($q) {
-                        $q->with(['priceForBranch' => function($q2) {
-                            $q2->where(function($q3) {
-                                $q3->where('branch_id', request()->header('branchId'))
-                                ->orWhereNull('branch_id');
-                            });
-                        }])
-                        ->select('id', 'item_id', 'title');
-                    }, 'options' => function($q) {
-                        $q->with(['values' => function($q2) {
-                            $q2->with(['priceForBranch' => function($q3) {
-                                $q3->where(function($q4) {
-                                    $q4->where('branch_id', request()->header('branchId'))
-                                    ->orWhereNull('branch_id');
-                                });
-                            }])
-                            ->select('id', 'item_option_id', 'title');
-                        }])
-                        ->select('id', 'item_id', 'title', 'size_id', 'option_type', 'is_counter', 'min_count', 'max_count');
+                    ->with(['sizes' => function ($q) use ($branchId) {
+                        $q->with(['priceForBranch' => fn($q2) => $q2->where(
+                            fn($q3) => $q3->where('branch_id', $branchId)->orWhereNull('branch_id')
+                        )])->select('id', 'item_id', 'title');
                     }])
-                    ->with(['priceForBranch' => function($q) {
-                        $q->where(function($q2) {
-                            $q2->where('branch_id', request()->header('branchId'))->orWhereNull('branch_id');
-                        });
+                    ->with(['options' => function ($q) use ($branchId) {
+                        $q->with(['values' => function ($q2) use ($branchId) {
+                            $q2->with(['priceForBranch' => fn($q3) => $q3->where(
+                                fn($q4) => $q4->where('branch_id', $branchId)->orWhereNull('branch_id')
+                            )])->select('id', 'item_option_id', 'title');
+                        }]);
                     }])
+                    ->with(['priceForBranch' => fn($q) => $q->where(
+                        fn($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id')
+                    )])
                     ->with('labels')
-                    ->with(['stockRestrictions' => function($q) use($branchId) {
-                        $q->where(function($q2) use($branchId) {
-                            $q2->whereNull('branch_id')->orWhere('branch_id', $branchId);
-                        })->where(function($q2) {
-                            $q2->whereNull('until')->orWhere('until', '>', now());
-                        });
+                    ->with(['stockRestrictions' => function ($q) use ($branchId) {
+                        $q->where(fn($q2) => $q2->whereNull('branch_id')->orWhere('branch_id', $branchId))
+                          ->where(fn($q2) => $q2->whereNull('until')->orWhere('until', '>', now()));
                     }]);
             }])
-            ->whereHas('items', function ($query) use($now) {
-                $query->where('active', ActiveStatus::Active->value)
-                    ->where(function($q) use($now) {
-                        $q->whereNull('from')
-                            ->orWhere('from', '<=', $now);
-                    })
-                    ->where(function($q) use($now) {
-                        $q->whereNull('to')
-                            ->orWhere('to', '>=', $now);
-                    });
-            })
-            ->where(function($query) use($now) {
-                $query->where('active', ActiveStatus::Active->value)
-                    ->where(function($q) use($now) {
-                        $q->whereNull('from')
-                            ->orWhere('from', '<=', $now);
-                    })
-                    ->where(function($q) use($now) {
-                        $q->whereNull('to')
-                            ->orWhere('to', '>=', $now);
-                    });
-            })
-            ->where(function($query) use($branchId) {
-                $query->whereDoesntHave('branches')
-                    ->orWhereHas('branches', function($q) use($branchId) {
-                        $q->where('branch_id', $branchId);
-                    });
-            })
+            ->whereHas('items', fn($q) => $q
+                ->where('active', ActiveStatus::Active->value)
+                ->where(fn($q2) => $q2->whereNull('from')->orWhere('from', '<=', $now))
+                ->where(fn($q2) => $q2->whereNull('to')->orWhere('to', '>=', $now))
+            )
+            ->where(fn($q) => $q
+                ->where('active', ActiveStatus::Active->value)
+                ->where(fn($q2) => $q2->whereNull('from')->orWhere('from', '<=', $now))
+                ->where(fn($q2) => $q2->whereNull('to')->orWhere('to', '>=', $now))
+            )
+            ->where(fn($q) => $q
+                ->whereDoesntHave('branches')
+                ->orWhereHas('branches', fn($q2) => $q2->where('branch_id', $branchId))
+            )
             ->orderBy('sort')
             ->get();
 
@@ -95,6 +62,17 @@ class CategoryController extends Controller
             $category->items->each(function ($item) {
                 $item->is_out_of_stock = $item->stockRestrictions->isNotEmpty();
                 $item->makeHidden('stockRestrictions');
+
+                $item->options->each(function ($option) {
+                    if ($option->pivot) {
+                        $option->size_id     = $option->pivot->size_id;
+                        $option->option_type = $option->pivot->option_type;
+                        $option->is_counter  = $option->pivot->is_counter;
+                        $option->min_count   = $option->pivot->min_count;
+                        $option->max_count   = $option->pivot->max_count;
+                        $option->makeHidden('pivot');
+                    }
+                });
             });
         });
 
