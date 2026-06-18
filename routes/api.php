@@ -6,6 +6,7 @@ use App\Http\Controllers\Dashboard\CancelReasonController;
 use App\Http\Controllers\Dashboard\CategoryController as DashboardCategoryController;
 use App\Http\Controllers\Dashboard\ItemController as DashboardItemController;
 use App\Http\Controllers\Dashboard\ItemOptionController;
+use App\Http\Controllers\Dashboard\OrderController as DashboardOrderController;
 use App\Http\Controllers\Dashboard\OrderStatusController;
 use App\Http\Controllers\Dashboard\DiscountController as DashboardDiscountController;
 use App\Http\Controllers\Dashboard\BranchLocationController;
@@ -134,6 +135,10 @@ Route::prefix('dashboard')->group(function () {
         Route::post('cancel-reasons', [CancelReasonController::class, 'store']);
         Route::delete('cancel-reasons/{cancelReason}', [CancelReasonController::class, 'destroy']);
 
+        Route::get('orders', [DashboardOrderController::class, 'index']);
+        Route::get('orders/export', [DashboardOrderController::class, 'export']);
+        Route::get('orders/{order}', [DashboardOrderController::class, 'show']);
+        Route::delete('orders/{order}', [DashboardOrderController::class, 'destroy']);
         Route::put('orders/{order}/status', [OrderStatusController::class, 'update']);
 
         // Categories
