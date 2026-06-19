@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Events\OrderRemoved;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\WorkingPeriodsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -22,7 +25,7 @@ class OrderController extends Controller
             ->orderBy($orderBy, $orderDir)
             ->paginate($size);
 
-        $orders->getCollection()->transform(fn($order) => $this->listShape($order));
+        $orders->getCollection()->transform(fn($order) => $order->toListArray());
 
         return response()->json($orders);
     }
@@ -82,14 +85,22 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
+        $id = $order->id;
+        $branchId = $order->branch_id;
         $order->delete();
+
+        OrderRemoved::dispatch($id, $branchId);
 
         return response()->json(['message' => 'تم حذف الطلب بنجاح']);
     }
 
     private function buildQuery(Request $request): Builder
     {
+        // Scope to the authed user's allowed branches; empty = full access.
+        $allowedBranches = Auth::guard('api')->user()->allowedBranchIds();
+
         return Order::query()
+            ->when(!empty($allowedBranches), fn($q) => $q->whereIn('branch_id', $allowedBranches))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
             ->when($request->type, fn($q) => $q->where('type', $request->type))
@@ -105,6 +116,14 @@ class OrderController extends Controller
             })
             ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
             ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->when($request->boolean('current_period'), function ($q) {
+                $start = WorkingPeriodsService::getCurrentPeriodStart();
+
+                // Closed now → no current period, so the live page shows nothing.
+                $start === null
+                    ? $q->whereRaw('1 = 0')
+                    : $q->where('created_at', '>=', $start);
+            })
             ->when($request->search, function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($sub) use ($search) {
@@ -114,25 +133,6 @@ class OrderController extends Controller
                         ->orWhere('client_additional_phone', 'like', '%' . $search . '%');
                 });
             });
-    }
-
-    private function listShape(Order $order): array
-    {
-        return [
-            'id'           => $order->id,
-            'reference'    => $order->order_reference,
-            'type'         => $order->type,
-            'client_name'  => $order->client_name,
-            'client_phone' => $order->client_phone,
-            'client_additional_phone' => $order->client_additional_phone,
-            'branch_id'    => $order->branch_id,
-            'branch_name'  => $order->branch_name,
-            'location_name'=> $order->location_name,
-            'payment_type' => $order->payment_type,
-            'total_amount' => $order->total_amount,
-            'status'       => $order->status,
-            'created_at'   => $order->created_at?->format('Y-m-d H:i'),
-        ];
     }
 
     private function typeLabel(?string $type): string

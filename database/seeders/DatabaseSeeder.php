@@ -21,5 +21,7 @@ class DatabaseSeeder extends Seeder
             'password' => '123456789',
             'username' => 'khaled'
         ]);
+
+        $this->call(PermissionSeeder::class);
     }
 }

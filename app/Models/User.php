@@ -23,10 +23,20 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'password',
         'username',
-        'image'
+        'image',
+        'hidden',
+        'last_seen_at',
+        'current_page',
     ];
 
+    // A user is considered online if seen within this many seconds.
+    public const ONLINE_THRESHOLD_SECONDS = 90;
+
     protected $appends = ['image_url'];
+
+    // Roles/permissions live under the JWT 'api' guard; pin it so Gate checks
+    // (can()/canAny() used by the permission middleware) resolve correctly.
+    protected string $guard_name = 'api';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -48,12 +58,39 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'hidden' => 'boolean',
+            'last_seen_at' => 'datetime',
         ];
     }
 
     public function getImageUrlAttribute()
     {
         return url($this->image);
+    }
+
+    public function getIsOnlineAttribute(): bool
+    {
+        return $this->last_seen_at
+            && $this->last_seen_at->gt(now()->subSeconds(self::ONLINE_THRESHOLD_SECONDS));
+    }
+
+    /**
+     * Branches this user is allowed to see orders for.
+     * No assigned branches means full access (all branches).
+     */
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Allowed branch ids for order scoping. An empty array means "all branches".
+     *
+     * @return array<int>
+     */
+    public function allowedBranchIds(): array
+    {
+        return $this->branches()->pluck('branches.id')->all();
     }
 
     public function getJWTIdentifier()

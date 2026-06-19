@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\OrderPlaced;
 use App\enums\ActiveStatus;
 use App\Enums\DiscountPaymentType;
 use App\Enums\DiscountType;
@@ -247,6 +248,9 @@ class OrderService
 
 
         $order->save();
+
+        OrderPlaced::dispatch($order);
+
         return $order;
     }
 }

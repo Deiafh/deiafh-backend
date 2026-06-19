@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -38,6 +39,8 @@ class AuthController extends Controller
 
         }
 
+        ActivityLogger::record(Auth::guard('api')->user(), 'auth.login', 'تسجيل الدخول', $request);
+
         return $this->respondWithToken($token);
     }
 
@@ -48,8 +51,17 @@ class AuthController extends Controller
         );
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
+        $user = Auth::guard('api')->user();
+
+        ActivityLogger::record($user, 'auth.logout', 'تسجيل الخروج', $request);
+
+        // Mark offline immediately.
+        if ($user) {
+            \App\Models\User::where('id', $user->id)->update(['last_seen_at' => null, 'current_page' => null]);
+        }
+
         Auth::guard('api')->logout();
 
         return response()->json([
@@ -84,7 +96,10 @@ class AuthController extends Controller
             'name' => $user->name,
             'image' => $user->image_url,
             'role' => $user->getRoleNames()->first(),
-            'permissions' => $user->getAllPermissions()->pluck('name')->toArray()
+            'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            'is_super_admin' => $user->hasRole('super_admin'),
+            // Allowed order branches; empty array means full access (all branches).
+            'branches' => $user->allowedBranchIds(),
         ];
     }
 }

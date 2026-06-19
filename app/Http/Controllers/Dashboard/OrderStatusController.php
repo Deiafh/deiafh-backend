@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class OrderStatusController extends Controller
 {
@@ -16,6 +18,15 @@ class OrderStatusController extends Controller
             'cancel_reason_id' => 'nullable|exists:cancel_reasons,id',
             'cancel_notes'     => 'nullable|string|max:1000',
         ]);
+
+        // Approving vs cancelling are distinct permissions.
+        $needed = $data['status'] === OrderStatus::REJECTED->value
+            ? 'live_orders.cancel'
+            : 'live_orders.approve';
+
+        if (! Auth::guard('api')->user()->can($needed)) {
+            abort(403);
+        }
 
         $update = ['status' => $data['status']];
 
@@ -28,6 +39,8 @@ class OrderStatusController extends Controller
         }
 
         $order->update($update);
+
+        OrderStatusChanged::dispatch($order);
 
         return response()->json($order->load('cancelReason'));
     }
