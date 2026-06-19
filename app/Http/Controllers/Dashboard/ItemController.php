@@ -135,12 +135,18 @@ class ItemController extends Controller
 
         $optionsPivot = [];
         foreach ($data['options'] ?? [] as $opt) {
+            $type = $opt['option_type'] ?? 'optional';
+            $min  = $opt['min_count']   ?? 0;
+            $max  = $opt['max_count']   ?? 0;
+            $err  = $this->validateOptionCounts($type, $min, $max);
+            if ($err) return response()->json(['message' => $err], 422);
+
             $optionsPivot[$opt['id']] = [
-                'size_id'     => $opt['size_id']     ?? null,
-                'option_type' => $opt['option_type'] ?? 'optional',
-                'is_counter'  => $opt['is_counter']  ?? false,
-                'min_count'   => $opt['min_count']   ?? 0,
-                'max_count'   => $opt['max_count']   ?? 0,
+                'size_id'     => $opt['size_id']  ?? null,
+                'option_type' => $type,
+                'is_counter'  => $opt['is_counter'] ?? false,
+                'min_count'   => $min,
+                'max_count'   => $max,
             ];
         }
         if (!empty($optionsPivot)) {
@@ -337,13 +343,20 @@ class ItemController extends Controller
             'max_count'      => 'integer|min:0',
         ]);
 
+        $err = $this->validateOptionCounts(
+            $data['option_type'] ?? 'optional',
+            $data['min_count']   ?? 0,
+            $data['max_count']   ?? 0
+        );
+        if ($err) return response()->json(['message' => $err], 422);
+
         $item->options()->syncWithoutDetaching([
             $data['item_option_id'] => [
-                'size_id'     => $data['size_id']    ?? null,
-                'option_type' => $data['option_type'] ?? 'optional',
-                'is_counter'  => $data['is_counter']  ?? false,
-                'min_count'   => $data['min_count']   ?? 0,
-                'max_count'   => $data['max_count']   ?? 0,
+                'size_id'     => $data['size_id']     ?? null,
+                'option_type' => $data['option_type']  ?? 'optional',
+                'is_counter'  => $data['is_counter']   ?? false,
+                'min_count'   => $data['min_count']    ?? 0,
+                'max_count'   => $data['max_count']    ?? 0,
             ]
         ]);
 
@@ -360,8 +373,26 @@ class ItemController extends Controller
             'max_count'   => 'integer|min:0',
         ]);
 
+        $err = $this->validateOptionCounts(
+            $data['option_type'] ?? 'optional',
+            $data['min_count']   ?? 0,
+            $data['max_count']   ?? 0
+        );
+        if ($err) return response()->json(['message' => $err], 422);
+
         $item->options()->updateExistingPivot($optionId, $data);
         return response()->json(['message' => 'updated']);
+    }
+
+    private function validateOptionCounts(string $type, int $min, int $max): ?string
+    {
+        if ($type === 'mandatory' && $min < 1) {
+            return 'الخيار الإلزامي يجب أن يكون الحد الأدنى 1 على الأقل';
+        }
+        if ($max > 0 && $max < $min) {
+            return 'الحد الأقصى يجب أن يكون أكبر من أو يساوي الحد الأدنى';
+        }
+        return null;
     }
 
     public function detachOption(Item $item, $optionId)
