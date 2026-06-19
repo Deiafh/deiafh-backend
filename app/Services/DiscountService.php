@@ -79,7 +79,7 @@ class DiscountService
         // branch
         if (
             $discount->branches()->count() > 0 &&
-            !$discount->branches->contains('branch_id', $currentBranch)
+            !$discount->branches->contains('id', $currentBranch)
         ) {
             throw new InvalidArgumentException("هذا الخصم غير متاح في الفرع المختار");
         }
@@ -87,7 +87,7 @@ class DiscountService
         // location
         if (
             $discount->locations()->count() > 0 &&
-            !$discount->locations->contains('location_id', $locationId)
+            !$discount->locations->contains('id', $locationId)
         ) {
             throw new InvalidArgumentException("هذا الخصم غير متاح في منطقة التوصيل المختارة");
         }

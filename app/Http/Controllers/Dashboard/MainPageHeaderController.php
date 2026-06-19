@@ -28,22 +28,25 @@ class MainPageHeaderController extends Controller
         $mime = $file->getMimeType();
         $isVideo = str_starts_with($mime, 'video/');
 
-        if (!is_dir(base_path('storage/headers'))) {
-            mkdir(base_path('storage/headers'), 0755, true);
+        $storageDir = public_path('storage/headers');
+        if (!is_dir($storageDir)) {
+            mkdir($storageDir, 0755, true);
         }
 
         if ($isVideo) {
             $ext = $file->getClientOriginalExtension() ?: 'mp4';
-            $path = 'storage/headers/' . uniqid() . '.' . $ext;
-            $file->move(base_path('storage/headers'), basename($path));
+            $filename = uniqid() . '.' . $ext;
+            $file->move($storageDir, $filename);
+            $path = 'storage/headers/' . $filename;
             $type = 'video';
         } else {
             $manager = new ImageManager(new Driver());
-            $path = 'storage/headers/' . uniqid() . '.webp';
+            $filename = uniqid() . '.webp';
+            $path = 'storage/headers/' . $filename;
             $manager->read($file)
                 ->scale(width: 1920)
                 ->encode(new AutoEncoder('webp', quality: 85))
-                ->save(base_path($path));
+                ->save(public_path($path));
             $type = 'image';
         }
 
@@ -70,8 +73,8 @@ class MainPageHeaderController extends Controller
     public function destroy($sort)
     {
         $header = MainPageHeader::findOrFail($sort);
-        if ($header->url && file_exists(base_path($header->url))) {
-            @unlink(base_path($header->url));
+        if ($header->url && file_exists(public_path($header->url))) {
+            @unlink(public_path($header->url));
         }
         $header->delete();
         return response()->json(['message' => 'تم الحذف بنجاح']);
