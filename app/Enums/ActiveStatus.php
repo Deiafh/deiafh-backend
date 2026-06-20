@@ -1,6 +1,6 @@
 <?php
 
-namespace App\enums;
+namespace app\Enums;
 
 enum ActiveStatus: string
 {
