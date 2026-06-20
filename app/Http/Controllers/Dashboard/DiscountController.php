@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\enums\ActiveStatus;
+use app\Enums\ActiveStatus;
 use App\Http\Controllers\Controller;
 use App\Models\BranchLocation;
 use App\Models\Category;

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\enums\ActiveStatus;
+use app\Enums\ActiveStatus;
 use App\Models\Branch;
 
 class BranchesService

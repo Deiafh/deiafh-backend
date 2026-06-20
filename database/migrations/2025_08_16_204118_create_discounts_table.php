@@ -1,6 +1,6 @@
 <?php
 
-use App\enums\ActiveStatus;
+use app\Enums\ActiveStatus;
 use App\Enums\DiscountApproachType;
 use App\Enums\DiscountConditionsType;
 use App\Enums\DiscountPaymentType;

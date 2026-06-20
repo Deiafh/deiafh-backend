@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Front;
 
-use App\enums\ActiveStatus;
+use app\Enums\ActiveStatus;
 use App\Enums\DiscountApproachType;
 use App\Enums\DiscountPaymentType;
 use App\Http\Controllers\Controller;
