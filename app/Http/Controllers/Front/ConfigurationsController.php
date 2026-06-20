@@ -11,6 +11,15 @@ class ConfigurationsController extends Controller
     public function index()
     {
         $settings = Setting::first();
+
+        // Site not installed / not configured yet — degrade instead of 500-ing.
+        if (! $settings) {
+            return response()->json([
+                'settings' => null,
+                'theme' => null,
+            ], 503);
+        }
+
         $settings->logo = url($settings->logo);
         $settings->background = url($settings->background);
         $settings->makeHidden([

@@ -34,9 +34,14 @@ use App\Http\Controllers\Front\OrderController;
 use App\Http\Controllers\Front\PaymentController;
 use App\Http\Controllers\Front\PosterController;
 use App\Http\Controllers\Front\WhatsAppNumberController;
+use App\Http\Controllers\InstallController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+
+// First-run installer (public; the install action is gated by a secret key).
+Route::get('install/status', [InstallController::class, 'status']);
+Route::post('install', [InstallController::class, 'install']);
 
 Route::get('poster', [PosterController::class, 'index']);
 Route::get('whatsapp-numbers', [WhatsAppNumberController::class, 'index']);
