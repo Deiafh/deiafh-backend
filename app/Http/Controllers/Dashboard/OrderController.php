@@ -100,6 +100,7 @@ class OrderController extends Controller
         $allowedBranches = Auth::guard('api')->user()->allowedBranchIds();
 
         return Order::query()
+            ->where('payment_verified', true)
             ->when(!empty($allowedBranches), fn($q) => $q->whereIn('branch_id', $allowedBranches))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))

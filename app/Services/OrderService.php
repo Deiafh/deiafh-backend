@@ -155,6 +155,111 @@ class OrderService
         }
     }
 
+    public function saveVisaOrder($cart, $userInfo, $discountId, float $visaFees): Order
+    {
+        $discount = $discountId ? Discount::find($discountId) : null;
+        $total_cart = $this->cartService->getTotalCartPrice($cart);
+        $delivery_price = $userInfo['order_type'] == "delivery" ? BranchLocation::with('priceGroup')->find($userInfo['location'])->effective_price : 0;
+        $cart_discount_amount = $discount && $discount->discount_type === DiscountType::CART_DISCOUNT->value ? DiscountService::calculateCartDiscountAmount($discount, $cart, $this->cartService) : 0;
+        $delivery_discount_amount = $discount && $discount->discount_type === DiscountType::DELIVERY_DISCOUNT->value ? DiscountService::calculateDeliveryDiscountAmount($discount, $delivery_price) : 0;
+
+        $branch = Branch::find($cart['branchId']);
+
+        $total = $total_cart - $cart_discount_amount + $delivery_price - $delivery_discount_amount;
+
+        $tax = 0;
+        if ($branch && $branch->tax > 0) {
+            $tax = $total * ($branch->tax / 100);
+        }
+
+        $totalAmount = $total + $tax + $visaFees;
+
+        $order = Order::create([
+            "type"             => $userInfo['order_type'] == "delivery" ? OrderType::DELIVERY->value : OrderType::PICK_UP->value,
+            "client_name"      => trim($userInfo['name']),
+            "client_phone"     => trim($userInfo['phone']),
+            "additional_phone" => trim($userInfo['additional_phone']),
+            "branch_id"        => $cart['branchId'],
+            "branch_name"      => $branch->title,
+            "location_name"    => BranchLocation::find($userInfo['location'])->name ?? null,
+            "address"          => trim($userInfo['address']),
+            "notes"            => trim($userInfo['notes']),
+            "payment_type"     => DiscountPaymentType::VISA->value,
+            "payment_verified" => false,
+            "total_cart_price" => $total_cart,
+            "delivery_price"   => $delivery_price,
+            "tax"              => $tax,
+            "visa_fees"        => $visaFees,
+            "discount_id"      => $discountId,
+            "discount_name"    => $discount->name ?? null,
+            "discount_code"    => $discount->code ?? null,
+            "order_discount_amount"   => $cart_discount_amount,
+            "delivery_discount_amount" => $delivery_discount_amount,
+            "status"           => OrderStatus::PENDING->value,
+            "total_amount"     => $totalAmount,
+        ]);
+
+        foreach ($cart['items'] as $item) {
+            $branchId = $cart['branchId'];
+            $itemData = Item::with('sizes')->with(['priceForBranch' => function ($q2) use ($branchId) {
+                $q2->where(function ($q3) use ($branchId) {
+                    $q3->where('branch_id', $branchId)->orWhereNull('branch_id');
+                });
+            }])->find($item['id']);
+            $cartItem = $order->items()->create([
+                "item_id"    => $itemData->id,
+                "item_name"  => $itemData->title,
+                "item_count" => $item['count'],
+                "item_single_price" => isset($item['size_id'])
+                    ? $itemData->sizes()->with(['priceForBranch' => function ($q2) use ($branchId) {
+                        $q2->where(function ($q3) use ($branchId) {
+                            $q3->where('branch_id', $branchId)->orWhereNull('branch_id');
+                        });
+                    }])->where('id', $item['size_id'])->first()->price
+                    : $itemData->price,
+                "item_total_price_with_options" => $this->cartService->calculateItemPrice($item, $cart['branchId']),
+                "item_size_id"   => $item['size_id'] ?? null,
+                "item_size_name" => isset($item['size_id']) ? $itemData->sizes()->where('id', $item['size_id'])->first()->title : null,
+            ]);
+
+            if (isset($item['options'])) {
+                foreach ($item['options'] as $option) {
+                    $optionData = ItemOption::find($option['id']);
+                    $optionItem = $cartItem->options()->create([
+                        "option_id"   => $option['id'],
+                        "option_name" => $optionData->title,
+                    ]);
+
+                    if (isset($option['values'])) {
+                        foreach ($option['values'] as $value) {
+                            $valueData = $optionData->values()->with(['priceForBranch' => function ($q2) use ($branchId) {
+                                $q2->where(function ($q3) use ($branchId) {
+                                    $q3->where('branch_id', $branchId)->orWhereNull('branch_id');
+                                });
+                            }])->where('id', $value['id'])->first();
+                            $optionItem->values()->create([
+                                "option_value_id"     => $valueData->id,
+                                "option_value_title"  => $valueData->title,
+                                "option_value_count"  => $value['count'],
+                                "option_value_single_price" => $valueData->price,
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        $order->save();
+
+        return $order;
+    }
+
+    public function confirmVisaPayment(Order $order): void
+    {
+        $order->update(['payment_verified' => true]);
+        OrderPlaced::dispatch($order);
+    }
+
     public function saveCashOrder($cart, $userInfo, $discountId)
     {
         $discount = $discountId ? Discount::find($discountId) : null;

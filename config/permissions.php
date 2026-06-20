@@ -150,6 +150,14 @@ return [
             ],
         ],
 
+        'visa_settings' => [
+            'label' => 'إعدادات الدفع الإلكتروني',
+            'permissions' => [
+                'visa_settings.show' => 'عرض',
+                'visa_settings.edit' => 'تعديل',
+            ],
+        ],
+
         'colors_settings' => [
             'label' => 'إعدادات الألوان',
             'permissions' => [

@@ -6,6 +6,7 @@ use App\Http\Controllers\Dashboard\CancelReasonController;
 use App\Http\Controllers\Dashboard\CategoryController as DashboardCategoryController;
 use App\Http\Controllers\Dashboard\ItemController as DashboardItemController;
 use App\Http\Controllers\Dashboard\ItemOptionController;
+use App\Http\Controllers\Dashboard\LabelController;
 use App\Http\Controllers\Dashboard\OrderController as DashboardOrderController;
 use App\Http\Controllers\Dashboard\OrderStatusController;
 use App\Http\Controllers\Dashboard\DiscountController as DashboardDiscountController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Dashboard\MenuGroupController;
 use App\Http\Controllers\Dashboard\NumberController;
 use App\Http\Controllers\Dashboard\RoleController;
 use App\Http\Controllers\Dashboard\SettingController;
+use App\Http\Controllers\Dashboard\VisaSettingController;
 use App\Http\Controllers\Dashboard\ThemeController;
 use App\Http\Controllers\Dashboard\UserController;
 use App\Http\Controllers\Dashboard\WorkingPeriodController;
@@ -29,6 +31,7 @@ use App\Http\Controllers\Front\DiscountsController;
 use App\Http\Controllers\Front\HomePageController;
 use App\Http\Controllers\Front\MenuController;
 use App\Http\Controllers\Front\OrderController;
+use App\Http\Controllers\Front\PaymentController;
 use App\Http\Controllers\Front\PosterController;
 use App\Http\Controllers\Front\WhatsAppNumberController;
 use Illuminate\Http\Request;
@@ -51,6 +54,9 @@ Route::post('discounts/get-public-discounts', [DiscountsController::class, 'getP
 Route::post('discounts/validate-discounts', [DiscountsController::class, 'checkDiscountCode']);
 Route::post('order/get-final-info', [OrderController::class, 'getFinalInfo']);
 Route::post('order/place-order', [OrderController::class, 'placeOrder']);
+Route::post('order/initiate-visa', [PaymentController::class, 'initiate']);
+Route::post('order/verify-visa', [PaymentController::class, 'verify']);
+Route::post('order/webhook/paymob', [PaymentController::class, 'paymobWebhook']);
 Route::get('order-details/{order_reference}', [OrderController::class, 'getOrderDetails']);
 
 
@@ -74,6 +80,10 @@ Route::prefix('dashboard')->group(function () {
         // ── General settings ──────────────────────────────────────────────
         Route::get('settings', [SettingController::class, 'show'])->middleware('permission:general_settings.show');
         Route::post('settings', [SettingController::class, 'update'])->middleware('permission:general_settings.edit');
+
+        // ── Visa / payment settings ───────────────────────────────────────
+        Route::get('visa-settings', [VisaSettingController::class, 'show'])->middleware('permission:visa_settings.show');
+        Route::post('visa-settings', [VisaSettingController::class, 'update'])->middleware('permission:visa_settings.edit');
 
         // ── Users ─────────────────────────────────────────────────────────
         Route::resource('users', UserController::class)->only(['index', 'show'])->middleware('permission:users.show');
@@ -208,6 +218,12 @@ Route::prefix('dashboard')->group(function () {
         Route::post('items/{item}/options', [DashboardItemController::class, 'attachOption'])->middleware('permission:items.edit');
         Route::put('items/{item}/options/{optionId}', [DashboardItemController::class, 'updateOptionPivot'])->middleware('permission:items.edit');
         Route::delete('items/{item}/options/{optionId}', [DashboardItemController::class, 'detachOption'])->middleware('permission:items.edit');
+
+        // ── Labels ────────────────────────────────────────────────────────
+        Route::get('labels', [LabelController::class, 'index'])->middleware('permission:items.show');
+        Route::post('labels', [LabelController::class, 'store'])->middleware('permission:items.edit');
+        Route::put('labels/{label}', [LabelController::class, 'update'])->middleware('permission:items.edit');
+        Route::delete('labels/{label}', [LabelController::class, 'destroy'])->middleware('permission:items.edit');
 
         // ── Shared item options ───────────────────────────────────────────
         // GET also feeds the items page (option picker), so allow items.show too.
