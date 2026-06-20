@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Events\OrderPlaced;
-use app\Enums\ActiveStatus;
+use App\Enums\ActiveStatus;
 use App\Enums\DiscountPaymentType;
 use App\Enums\DiscountType;
 use App\Enums\OrderStatus;

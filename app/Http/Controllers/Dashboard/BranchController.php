@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use app\Enums\ActiveStatus;
+use App\Enums\ActiveStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\WorkingPeriodGroup;
