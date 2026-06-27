@@ -141,16 +141,7 @@ class WorkingPeriodsService
     }
 
     public static function isAvailableGeneralWorkingPeriod() {
-        $current_date = self::getCurrent();
-        return WorkingPeriod::whereNull('working_period_group_id')
-            ->where(function($q) use($current_date) {
-                return $q->whereColumn('from_date', '<', 'to_date')
-                    ->where('from_date', '<=', $current_date)
-                    ->where('to_date', '>=', $current_date);
-            })->orWhere(function($q) use($current_date) {
-                return $q->whereColumn('from_date', '>', 'to_date')
-                    ->where('from_date', '<=', $current_date)
-                    ->orWhere('to_date', '>=', $current_date);
-            })->exists();
+        // A general (ungrouped) window is open exactly when one is currently active.
+        return self::getCurrentPeriodEndForGroup(null) !== null;
     }
 }

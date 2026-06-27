@@ -43,8 +43,10 @@ class BranchesService
                                 ->where('to_date', '>=', $currentDate);
                         })->orWhere(function($q) use($currentDate) {
                             $q->whereColumn('from_date', '>', 'to_date')
-                                ->where('from_date', '<=', $currentDate)
-                                ->orWhere('to_date', '>=', $currentDate);
+                                ->where(function($q) use($currentDate) {
+                                    $q->where('from_date', '<=', $currentDate)
+                                        ->orWhere('to_date', '>=', $currentDate);
+                                });
                         });
                     });
             });

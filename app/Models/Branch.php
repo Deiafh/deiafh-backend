@@ -49,19 +49,8 @@ class Branch extends Model
 
     public function isWorkingNow(): bool
     {
-        $currentDate = WorkingPeriodsService::getCurrent();
-
-        return WorkingPeriod::where('working_period_group_id', $this->working_period_group_id)
-            ->where(function($q) use ($currentDate) {
-                $q->where(function($q) use($currentDate) {
-                    $q->whereColumn('from_date', '<', 'to_date')
-                        ->where('from_date', '<=', $currentDate)
-                        ->where('to_date', '>=', $currentDate);
-                })->orWhere(function($q) use($currentDate) {
-                    $q->whereColumn('from_date', '>', 'to_date') 
-                        ->where('from_date', '<=', $currentDate)
-                        ->orWhere('to_date', '>=', $currentDate);
-                });
-            })->exists();
+        // Open exactly when there is a currently-active working window. Deriving this
+        // from the same helper the countdown uses keeps the two strictly consistent.
+        return WorkingPeriodsService::getCurrentPeriodEndForGroup($this->working_period_group_id) !== null;
     }
 }
