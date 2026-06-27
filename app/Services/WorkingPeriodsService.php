@@ -58,6 +58,64 @@ class WorkingPeriodsService
         return $earliest;
     }
 
+    /**
+     * The datetime the currently-active working window will close, or null if no
+     * window is open right now for the given group. When several active windows
+     * overlap, the latest end wins so the countdown reflects the real closing time.
+     */
+    public static function getCurrentPeriodEndForGroup(?int $groupId): ?Carbon
+    {
+        $now          = Carbon::now();
+        $currentIndex = self::currentDayIndex($now);
+        $current      = $currentIndex . $now->format('His');
+
+        $query = WorkingPeriod::query();
+        $groupId === null
+            ? $query->whereNull('working_period_group_id')
+            : $query->where('working_period_group_id', $groupId);
+
+        $latestEnd = null;
+
+        foreach ($query->get(['from_date', 'to_date']) as $period) {
+            $from = $period->from_date;
+            $to   = $period->to_date;
+
+            $active = $from <= $to
+                ? ($current >= $from && $current <= $to)
+                : ($current >= $from || $current <= $to);
+
+            if (! $active) {
+                continue;
+            }
+
+            $end = self::decodeToUpcomingDateTime($to, $now);
+
+            if ($latestEnd === null || $end->gt($latestEnd)) {
+                $latestEnd = $end;
+            }
+        }
+
+        return $latestEnd;
+    }
+
+    /** Soonest real datetime (>= now) matching an encoded weekday+time boundary. */
+    private static function decodeToUpcomingDateTime(string $encoded, Carbon $now): Carbon
+    {
+        $dayIndex = (int) substr($encoded, 0, 1);
+        $hour     = (int) substr($encoded, 1, 2);
+        $minute   = (int) substr($encoded, 3, 2);
+        $second   = (int) substr($encoded, 5, 2);
+
+        $daysForward = ((($dayIndex - self::currentDayIndex($now)) % 7) + 7) % 7;
+        $candidate   = $now->copy()->addDays($daysForward)->setTime($hour, $minute, $second);
+
+        if ($candidate->lt($now)) {
+            $candidate->addDays(7);
+        }
+
+        return $candidate;
+    }
+
     /** Most recent real datetime (<= now) matching an encoded weekday+time boundary. */
     private static function decodeToRecentDateTime(string $encoded, Carbon $now): Carbon
     {

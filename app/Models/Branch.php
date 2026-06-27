@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\WorkingPeriodsService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
@@ -38,6 +39,12 @@ class Branch extends Model
     public function getIsWorkingNowAttribute()
     {
         return $this->isWorkingNow();
+    }
+
+    /** When the currently-open working window closes, or null if not open now. */
+    public function currentPeriodEndsAt(): ?Carbon
+    {
+        return WorkingPeriodsService::getCurrentPeriodEndForGroup($this->working_period_group_id);
     }
 
     public function isWorkingNow(): bool
